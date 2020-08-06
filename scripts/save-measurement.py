@@ -75,7 +75,7 @@ if __name__ == "__main__":
             # write header
             with open(filename, 'a') as f:
                 writer = csv.writer(f)
-                writer.writerow(['id', 'sys', 'dia', 'hr'] \
+                writer.writerow(['id', 'date', 'sys', 'dia', 'hr'] \
                     + ['x'+str(i) for i in range(len(x))])
 
         timestr = time.strftime("%Y-%m-%d-%H:%M:%S")
