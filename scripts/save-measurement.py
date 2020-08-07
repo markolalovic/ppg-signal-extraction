@@ -37,36 +37,52 @@ def plot(x):
     ax.plot(list(range(len(x))), x)
     plt.show()
 
-def get_signal_from(dirname='sample'):
+def get_signal_from(device):
     '''
-    Return the AC component of a signal from the recording, i.e. the sequence
-    of images
+    Return PPG signal as a sequence of mean intensities from the sequence of
+    images that were captured by a device (NoIR camera or iphone camera)
     '''
-    length = len(os.listdir('../data/' + dirname))
+    if device == 'noir':
+        length = len(os.listdir('../data/' + dirname))
+        x = []
+        for i in range(length):
+            image_path = '../data/%s/image%s.jpg' %(dirname, i,)
+            print('reading image: ' + image_path)
+            x.append(get_mean_intensity(image_path))
+        return x
+    else:
+        images = os.listdir('../data/iphone/')
+        numbers = [image[3:][:-4] for image in images]
+        numbers = [int(n) for n in numbers]
+        numbers = sorted(numbers)
+        length = len(numbers)
+
+        x = []
+        for n in numbers:
+            image_path = '../data/iphone/out' + str(n) + '.png'
+            print('reading image: ' + image_path)
+            x.append(get_mean_intensity(image_path))
+        return x
+
+def get_detrended(x):
+    length = len(x)
     t = list(range(length))
-    x = []
-
-    for i in range(length):
-        image_path = '../data/%s/image%s.jpg' %(dirname, i,)
-        print('reading image: ' + image_path)
-        x.append(get_mean_intensity(image_path))
-
     t = np.array(t).reshape((-1, 1))
     x = np.array(x)
     model = LinearRegression()
     model.fit(t, x)
-    # calculate trend (DC component)
+
+    # calculate the trend (DC component)
     model = LinearRegression().fit(t, x)
     x_pred = model.predict(t)
     trend = list(x_pred)
     x = list(x)
     detrended = [x[i] - trend[i] for i in range(length)]
-
     return detrended
 
 if __name__ == "__main__":
-    dirname = 'recording'
-    x = get_signal_from(dirname)
+    device = input('device (noir, iphone): ')
+    x = get_signal_from(device)
     plot(x)
 
     if input('Save it? (y/n): ') == 'y':
@@ -75,22 +91,35 @@ if __name__ == "__main__":
             # write header
             with open(filename, 'a') as f:
                 writer = csv.writer(f)
-                writer.writerow(['id', 'date', 'sys', 'dia', 'hr'] \
+                writer.writerow(['id', 'date', 'device', 'sys', 'dia', 'hr'] \
                     + ['x'+str(i) for i in range(len(x))])
 
-        timestr = time.strftime("%Y-%m-%d-%H:%M:%S")
+
         pid = input('ID: ')  # e.g. 0
+        if device == 'noir':
+            dev = 'Pi NoIR Camera V2'
+        else:
+            dev = 'iPhone 6s'
+        timestr = time.strftime("%Y-%m-%d-%H:%M:%S")
         sys = input('SYS: ') # e.g. 116
         dia = input('DIA: ') # e.g. 59
         hr = input('HR: ')   # e.g. 55
 
-        fields = [str(pid), timestr, str(sys), str(dia), str(hr)] \
+        fields = [str(pid), timestr, dev, str(sys), str(dia), str(hr)] \
             + [str(elt) for elt in x]
         with open(filename, 'a') as f:
             writer = csv.writer(f)
             writer.writerow(fields)
 
-    try:
-        shutil.rmtree('../data/' + dirname)
-    except OSError as e:
-        print ("Error: %s - %s." % (e.filename, e.strerror))
+    if device == 'noir':
+        try:
+            shutil.rmtree('../data/recording')
+        except OSError as e:
+            print ('Error: %s - %s.' % (e.filename, e.strerror))
+    else:
+        for filename in os.listdir('../data/iphone'):
+            file_path = os.path.join('../data/iphone', filename)
+            try:
+                os.unlink(file_path)
+            except Exception as e:
+                print('Error: %s - %s.' % (file_path, e))
