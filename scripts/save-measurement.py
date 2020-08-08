@@ -43,10 +43,10 @@ def get_signal_from(device):
     images that were captured by a device (NoIR camera or iphone camera)
     '''
     if device == 'noir':
-        length = len(os.listdir('../data/' + dirname))
+        length = len(os.listdir('../data/recording'))
         x = []
         for i in range(length):
-            image_path = '../data/%s/image%s.jpg' %(dirname, i,)
+            image_path = '../data/recording/image%s.jpg' %(i,)
             print('reading image: ' + image_path)
             x.append(get_mean_intensity(image_path))
         return x
